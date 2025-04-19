@@ -3,6 +3,7 @@ import time
 from dotenv import load_dotenv
 from anthropic import Anthropic
 from openai import OpenAI
+import datetime
 
 # Load environment variables from .env file
 load_dotenv()
@@ -10,6 +11,8 @@ load_dotenv()
 # Initialize API clients
 anthropic_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+save_path = "model_responses/debate_results_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".txt"
 
 # Initial prompt to start the conversation
 initial_prompt = """can you generate a hard to find fact online? Facts that require fairly specific expertise to explain that is costly to obtain (e.g. something only a cardiologist would say).
@@ -23,30 +26,56 @@ Name this document.
 
 i will grade you on how easily i can find this fact on google. try to do as well as you can"""
 
-is_this_true = "is this true? make sure to say true or false and explain why: {claim}"
+is_this_true = "is this true? make sure to say true or false and explain why. if it is false, don't say true anywhere in your response: {claim}"
+
+# Initialize conversation histories
+claude_conversation = []
+openai_conversation = []
 
 def prompt_claude(message):
-    """Send a message to Claude and get the response"""
+    """Send a message to Claude with conversation history and get the response"""
     try:
+        # Add the user message to the conversation history
+        claude_conversation.append({"role": "user", "content": message})
+        
+        # Send the entire conversation history to Claude
         response = anthropic_client.messages.create(
             model="claude-3-7-sonnet-20250219",
             max_tokens=1000,
-            messages=[{"role": "user", "content": message}]
+            messages=claude_conversation
         )
-        return response.content[0].text
+        
+        # Extract the response text
+        response_text = response.content[0].text
+        
+        # Add Claude's response to the conversation history
+        claude_conversation.append({"role": "assistant", "content": response_text})
+        
+        return response_text
     except Exception as e:
         print(f"Error with Claude API: {e}")
         return "Error communicating with Claude."
 
 def prompt_openai(message):
-    """Send a message to OpenAI and get the response"""
+    """Send a message to OpenAI with conversation history and get the response"""
     try:
+        # Add the user message to the conversation history
+        openai_conversation.append({"role": "user", "content": message})
+        
+        # Send the entire conversation history to OpenAI
         response = openai_client.chat.completions.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": message}],
+            model="gpt-4.1-2025-04-14",
+            messages=openai_conversation,
             max_tokens=1000
         )
-        return response.choices[0].message.content
+        
+        # Extract the response text
+        response_text = response.choices[0].message.content
+        
+        # Add OpenAI's response to the conversation history
+        openai_conversation.append({"role": "assistant", "content": response_text})
+        
+        return response_text
     except Exception as e:
         print(f"Error with OpenAI API: {e}")
         return "Error communicating with OpenAI."
@@ -57,20 +86,28 @@ def main():
     iterations = 0
     
     print(f"Starting with prompt: '{initial_prompt}'")
+    with open(save_path, "w") as f:
+        f.write(f"Starting with prompt: '{initial_prompt}'\n")
     
     while iterations < 10:
         iterations += 1
         print(f"\n--- ITERATION {iterations} ---")
+        with open(save_path, "a") as f:
+            f.write(f"\n--- ITERATION {iterations} ---")
         
         # Step 1: Prompt Claude
         print("Prompting Claude...")
         claude_response = prompt_claude(generate_fact)
         print(f"Claude's response: '{claude_response}'")
+        with open(save_path, "a") as f:
+            f.write(f"Claude's response: '{claude_response}'")
         
         # Step 2: Prompt OpenAI with Claude's response
         print("Prompting OpenAI...")
         openai_response = prompt_openai(response_prompt.replace("{claim}", claude_response))
         print(f"OpenAI's response: '{openai_response}'")
+        with open(save_path, "a") as f:
+            f.write(f"OpenAI's response: '{openai_response}'")
         
         # Check if OpenAI's response starts with "True"
         if "true" in openai_response.lower():
@@ -84,6 +121,8 @@ def main():
         time.sleep(1)
     
     print(f"Reached maximum of {iterations} iterations without a 'True' response.")
+    with open(save_path, "a") as f:
+        f.write(f"Reached maximum of {iterations} iterations without a 'True' response.")
 
 if __name__ == "__main__":
     main()
