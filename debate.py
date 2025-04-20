@@ -26,7 +26,7 @@ Name this document.
 
 i will grade you on how easily i can find this fact on google. try to do as well as you can"""
 
-is_this_true = "is this true? make sure to say true or false and explain why. if it is false, don't say true anywhere in your response: {claim}"
+is_this_true = "is this true? make sure to say true or false and explain why. if it is false, do not under any circumstances say the word 'true' anywhere in your response: {claim}"
 
 # Initialize conversation histories
 claude_conversation = []
@@ -97,14 +97,14 @@ def main():
         
         # Step 1: Prompt Claude
         print("Prompting Claude...")
-        claude_response = prompt_claude(generate_fact)
+        claude_response = prompt_openai(generate_fact)
         print(f"Claude's response: '{claude_response}'")
         with open(save_path, "a") as f:
             f.write(f"Claude's response: '{claude_response}'")
         
         # Step 2: Prompt OpenAI with Claude's response
         print("Prompting OpenAI...")
-        openai_response = prompt_openai(response_prompt.replace("{claim}", claude_response))
+        openai_response = prompt_claude(response_prompt.replace("{claim}", claude_response))
         print(f"OpenAI's response: '{openai_response}'")
         with open(save_path, "a") as f:
             f.write(f"OpenAI's response: '{openai_response}'")
