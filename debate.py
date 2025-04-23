@@ -13,7 +13,7 @@ load_dotenv()
 anthropic_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-save_path = "model_responses/openai_with_itself/debate_inference_results_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".txt"
+save_path = "model_responses/gpt3.5_with_itself/debate_inference_results_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".txt"
 
 # Initial prompt to start the conversation
 initial_prompt = """can you generate an inference or fact that is hard to find online? Inferences or facts that require fairly specific expertise to explain that is costly to obtain (e.g. something only a cardiologist would say).
@@ -69,7 +69,17 @@ def prompt_claude2(message):
         response = anthropic_client.messages.create(
             model="claude-3-7-sonnet-20250219",
             max_tokens=1000,
-            messages=claude_conversation2
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": message,
+                        }
+                    ]
+                }
+            ]
         )
         
         # Extract the response text
@@ -91,7 +101,8 @@ def prompt_openai(message):
         
         # Send the entire conversation history to OpenAI
         response = openai_client.chat.completions.create(
-            model="gpt-4.1-2025-04-14",
+            # model="gpt-4.1-2025-04-14",
+            model="gpt-3.5-turbo",
             messages=openai_conversation,
             max_tokens=1000
         )
@@ -115,7 +126,8 @@ def prompt_openai2(message):
         
         # Send the entire conversation history to OpenAI
         response = openai_client.chat.completions.create(
-            model="gpt-4.1-2025-04-14",
+            # model="gpt-4.1-2025-04-14",
+            model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": ""},
                 {"role": "user", "content": message}
@@ -168,9 +180,9 @@ def main():
         if "yes" in openai_response.lower():
             print(f"Success! OpenAI responded with: '{openai_response}'")
             print(f"Total iterations: {iterations}")
-            with open("model_responses/inferences_true_gpt41.json", "r") as f:
+            with open("model_responses/inferences_true_gpt4o.json", "r") as f:
                 data = json.load(f)
-            with open("model_responses/inferences_true_gpt41.json", "w") as f:
+            with open("model_responses/inferences_true_gpt4o.json", "w") as f:
                 if "$##" in claude_response:
                     data.append(claude_response.split("$##")[1])
                 else:

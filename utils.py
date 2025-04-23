@@ -41,7 +41,7 @@ def get_claude_response(prompt, thisModel="claude-3-5-sonnet-20241022", systemPr
     response = anthropic_client.messages.create(
         model=thisModel,
         max_tokens=1000,
-        temperature=0,
+        temperature=1,
         system=systemPrompt,
         messages=[
             {
