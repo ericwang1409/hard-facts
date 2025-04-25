@@ -13,7 +13,9 @@ load_dotenv()
 anthropic_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-save_path = "model_responses/gpt3.5_with_itself/debate_inference_results_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".txt"
+folder = "model_responses/debate_gpt4omini_with_itself_short"
+os.makedirs(folder, exist_ok=True)
+save_path = folder + "/debate_inference_results_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".txt"
 
 # Initial prompt to start the conversation
 initial_prompt = """can you generate an inference or fact that is hard to find online? Inferences or facts that require fairly specific expertise to explain that is costly to obtain (e.g. something only a cardiologist would say).
@@ -25,7 +27,7 @@ Pick a situationally meaningful topic, e.g. “vulnerability detection”
 Then identify a document that is related to the topic, but which is mostly only semantically related. For example, maybe there exists a physics paper which, for whatever reason, relies heavily on computer security concepts.
 Name this document.
 
-i will grade you on how easily i can find this fact on google, and whether or not the inference is reasonable or fact is true. try to do as well as you can. Start the fact with '$##' or else you will be penalized."""
+i will grade you on how easily i can find this fact on google, and whether or not the inference is reasonable or fact is true. try to do as well as you can. Start the fact with '$##' or else you will be penalized. Also, keep the fact to two sentences or less."""
 
 is_this_true = "is this a logical inference? make sure to say 'yes' or 'no' and explain why. if it is 'no', do not under any circumstances say the word 'yes' anywhere in your response: {claim}"
 
@@ -102,7 +104,8 @@ def prompt_openai(message):
         # Send the entire conversation history to OpenAI
         response = openai_client.chat.completions.create(
             # model="gpt-4.1-2025-04-14",
-            model="gpt-3.5-turbo",
+            # model="gpt-3.5-turbo",
+            model="gpt-4o-mini",
             messages=openai_conversation,
             max_tokens=1000
         )
@@ -127,7 +130,8 @@ def prompt_openai2(message):
         # Send the entire conversation history to OpenAI
         response = openai_client.chat.completions.create(
             # model="gpt-4.1-2025-04-14",
-            model="gpt-3.5-turbo",
+            # model="gpt-3.5-turbo",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": ""},
                 {"role": "user", "content": message}
@@ -180,9 +184,9 @@ def main():
         if "yes" in openai_response.lower():
             print(f"Success! OpenAI responded with: '{openai_response}'")
             print(f"Total iterations: {iterations}")
-            with open("model_responses/inferences_true_gpt4o.json", "r") as f:
+            with open("model_responses/inferences_true_gpt3.5_short.json", "r") as f:
                 data = json.load(f)
-            with open("model_responses/inferences_true_gpt4o.json", "w") as f:
+            with open("model_responses/inferences_true_gpt3.5_short.json", "w") as f:
                 if "$##" in claude_response:
                     data.append(claude_response.split("$##")[1])
                 else:
